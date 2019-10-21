@@ -1,3 +1,4 @@
+
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
@@ -84,8 +85,85 @@
         </div>
 
         <script>
-            var kodi_ip = "your kodi ip"
-            var kodi_port = "your kodi web port"
+            
+            
+            var onlongtouch; 
+            var timer, lockTimer;
+            var touchduration = 800;
+            var touch_sensitivity = 10;
+            var start_sensitivity = 50;
+            var start_touch_xy = { x:0, y:0 };
+            var touchxy = { x:0, y:0 };
+            var touch_element = null;
+            
+            function touchstart(e) {
+                e.preventDefault();
+                if(lockTimer){
+                    return;
+                }
+                timer = setTimeout(onlongtouch, touchduration); 
+                lockTimer = true;
+                touchxy.x = e.touches[0].clientX;
+                touchxy.y = e.touches[0].clientY;
+                start_touch_xy.x = touchxy.x;
+                start_touch_xy.y = touchxy.y;
+                touch_element = e.target;
+            }
+            
+            function check_distance(touch) {
+                if ( Math.abs(touchxy.x - touch.clientX) > touch_sensitivity ||
+                     Math.abs(touchxy.y - touch.clientY) > touch_sensitivity ) {
+                    return true;
+                }
+                return false;
+            }
+            
+            function check_distance_start(touch) {
+                if ( Math.abs(start_touch_xy.x - touch.clientX) > start_sensitivity ||
+                     Math.abs(start_touch_xy.y - touch.clientY) > start_sensitivity ) {
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            function touchmove(e) {
+                e.preventDefault();
+                if(lockTimer) {
+                    if(check_distance(e.touches[0])) {
+                        clearTimeout(timer);
+                        timer = setTimeout(onlongtouch, touchduration); 
+                        touchxy.x = e.touches[0].clientX;
+                        touchxy.y = e.touches[0].clientY;
+                        touch_element = e.target;
+                    }
+                    return;
+                }
+            }
+
+            function touchend(e) {
+                //stops short touches from firing the event
+                if (timer){
+                    clearTimeout(timer); // clearTimeout, not cleartimeout..
+                    lockTimer = false;
+                }
+                
+                if(!check_distance_start(e.changedTouches[0])) {
+                    onlongtouch();
+                }
+            }
+
+            onlongtouch = function() { 
+                touch_element.click();
+            };
+            
+            window.addEventListener("touchstart", touchstart, false);
+            window.addEventListener("touchmove", touchmove, false);
+            window.addEventListener("touchend", touchend, false);
+            
+            
+            var kodi_ip = "your kodi ip";
+            var kodi_port = "your kodi port";
             //alert("screen.width: "+ screen.width);
             //alert("window.devicePixelRatio: "+ window.devicePixelRatio);
         
@@ -160,7 +238,7 @@
             function showScreen(error=null) {
                 
                 if (error != null) {
-                    alert("Error: " + error);
+                    alert("showScreen Error: " + error);
                 }
                 
                 console.log("showing screen");
@@ -180,13 +258,18 @@
                 
                 if (!loading) {
                     if(clicked) {
-                        clicked = false;
-                        fading_element.stop(true,false);
-                        fading_element.css({ opacity: 1.0 });
+                        temp = $("#"+youtubeUrl);
+                        console.log("Fading element: " + fading_element[0]);
+                        console.log("youtubeUrl element: " + temp[0]);
+                        if (fading_element[0] != temp[0]) {
+                            clicked = false;
+                            fading_element.stop(true,false);
+                            fading_element.css({ opacity: 1.0 });
+                        }
                     } else {
                         clicked = true;
                         fading_element = $("#"+youtubeUrl);
-                        fading_element.fadeOut( 500, function() {
+                        fading_element.fadeOut( 1000, function() {
                             loading = true;
                             $("#overlay").show();
 
@@ -218,7 +301,7 @@
                   success: function(data, textStatus, xhr){
                     console.log( "Sent video: " + title + " : " + textStatus );
                   },
-                  timeout: 500	
+                  timeout: 1000	
                 });
             }
 
@@ -232,7 +315,7 @@
                 $.ajax({
                       url: kodiUrl,
                       error: function(data, textStatus, xhr){
-                        alert( "Error: " + textStatus );
+                        alert( "check_kodi_idle Error: " + textStatus );
                       },
                       success: function(data, textStatus, xhr){
                           json_data = JSON.parse(data);
@@ -246,7 +329,7 @@
                             setTimeout(check_kodi_idle,200);
                         }
                       },
-                      timeout: 500	
+                      timeout: 1000	
                     });
             }
 
@@ -256,7 +339,7 @@
                 $.ajax({
                       url: status_url,
                       error: function(data, textStatus, xhr){
-                        alert( "Error: " + textStatus );
+                        alert( "get_kodi_status Error: " + textStatus );
                       },
                       success: function(data, textStatus, xhr){
                           json_data = JSON.parse(data);
@@ -268,7 +351,7 @@
                               showScreen();
                           }   
                       },
-                      timeout: 500	
+                      timeout: 1000	
                     });
             }
 
@@ -279,7 +362,7 @@
                 $.ajax({
                       url: kodiUrl,
                       error: function(data, textStatus, xhr){
-                        alert( "Error: " + textStatus );
+                        alert( "check_kodi_time Error: " + textStatus );
                       },
                       success: function(data, textStatus, xhr){
                           json_data = JSON.parse(data);
@@ -293,7 +376,7 @@
                               get_kodi_status();
                           }
                       },
-                      timeout: 500	
+                      timeout: 1000	
                     });
             }
 
@@ -310,7 +393,7 @@
                   success: function(data, textStatus, xhr){
                     console.log( "sent stop: "+ textStatus );
                   },
-                  timeout: 500	
+                  timeout: 1000	
                 });
             }
 
